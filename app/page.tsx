@@ -26,7 +26,12 @@ async function getMatches() {
 }
 
 function normalizeMatchName(name: string) {
-  return name.toLowerCase().replace(/\s+/g, " ").trim();
+  return name
+    .toLowerCase()
+    .replace(/\b(fc|sc|ac|cf|cd|deportivo|club|atlético|atletico)\b/g, "")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function didPredictionWin(match: any, prediction: any) {
@@ -76,10 +81,16 @@ export default async function Home() {
     .map((match: any) => {
       const matchName = `${match.teams.home.name} vs ${match.teams.away.name}`;
 
-      const prediction = predictions.find(
-        (item: any) =>
-          normalizeMatchName(item.match) === normalizeMatchName(matchName)
-      );
+      const prediction = predictions.find((item: any) => {
+  const normalizedPrediction = normalizeMatchName(item.match);
+  const normalizedMatch = normalizeMatchName(matchName);
+
+  return (
+    normalizedPrediction === normalizedMatch ||
+    normalizedPrediction.includes(normalizedMatch) ||
+    normalizedMatch.includes(normalizedPrediction)
+  );
+});      
 
       if (!prediction) return null;
 
