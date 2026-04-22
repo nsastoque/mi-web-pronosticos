@@ -92,15 +92,20 @@ export async function GET(req: Request) {
       return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const bestLeagues = await detectBestLeaguesOfTheDay();
-    const selectedLeagues = bestLeagues.slice(0, 8);
+const bestLeagues = await detectBestLeaguesOfTheDay();
 
-    const allOdds = await Promise.all(
-      selectedLeagues.map((league: any) => getSoccerOddsBySportKey(league.key))
-    );
+const blacklist = [
+  "fifa",
+  "winner",
+  "outright",
+];
 
-    const flatOdds = allOdds.flat();
-    const candidates = buildCandidatesFromOdds(flatOdds).slice(0, 40);
+const selectedLeagues = bestLeagues
+  .filter((l: any) =>
+    l.key.startsWith("soccer_") &&
+    !blacklist.some(b => l.key.includes(b))
+  )
+  .slice(0, 3);
 
     const predictions = await askClaudeForPredictions(candidates);
 
