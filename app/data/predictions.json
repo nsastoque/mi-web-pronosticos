@@ -1,0 +1,42 @@
+[
+  {
+    "match": "Fluminense vs Chapecoense",
+    "market": "Ganador",
+    "pick": "Fluminense",
+    "odd": 1.28,
+    "confidence": "high",
+    "short_reason": "Chapecoense viene de caer 1-4 ante Botafogo y pelea zona de descenso. Fluminense local con diferencia de plantilla clara, aunque su defensa ha concedido en los últimos 5 (8 GC)."
+  },
+  {
+    "match": "Palmeiras vs Santos",
+    "market": "Ganador",
+    "pick": "Palmeiras",
+    "odd": 1.47,
+    "confidence": "high",
+    "short_reason": "Palmeiras acumula 7 partidos invicto en el Brasileirao. Santos encadena una racha fría (L-L-D-L) con defensa floja. Localía + forma sostenida inclinan el partido."
+  },
+  {
+    "match": "Botafogo vs Remo",
+    "market": "Ganador",
+    "pick": "Botafogo",
+    "odd": 1.65,
+    "confidence": "high",
+    "short_reason": "Botafogo suma 3 victorias en los últimos 5 (4-1 a Chape la más reciente) y atraviesa un buen momento ofensivo. Remo, recién ascendido, se mueve en zona baja y sufre como visitante."
+  },
+  {
+    "match": "Remo vs Cruzeiro",
+    "market": "Ganador",
+    "pick": "Cruzeiro",
+    "odd": 1.9,
+    "confidence": "medium",
+    "short_reason": "Cruzeiro llega en forma sólida tras vencer 2-0 a Gremio y 3-0 a Vitoria. Remo pelea zona de descenso con plantilla inferior. Cuota con valor pese a jugar como visitante."
+  },
+  {
+    "match": "Sao Paulo vs Mirassol",
+    "market": "Ganador",
+    "pick": "Sao Paulo",
+    "odd": 1.84,
+    "confidence": "medium",
+    "short_reason": "Sao Paulo viene de ganar 4-1 a Cruzeiro y 2-1 a Vasco, con buena pegada. Mirassol también llega en forma, pero el salto de nivel en el Morumbi suele pesar."
+  }
+]
