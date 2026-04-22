@@ -82,14 +82,17 @@ async function askClaudeForPredictions(candidates: any[]) {
   }
 }
 
-export async function GET(req: Request) {
-  try {
-    const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
+} catch (error) {
+  console.error("Error generando predicciones:", error);
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
+  return Response.json(
+    {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    },
+    { status: 500 }
+  );
+ }
 
 const bestLeagues = await detectBestLeaguesOfTheDay();
 
