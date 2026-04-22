@@ -37,92 +37,98 @@ ${JSON.stringify(candidates, null, 2)}
 }
 
 async function askClaudeForPredictions(candidates: any[]) {
+  const prompt = buildClaudePrompt(candidates);
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5",
+      max_tokens: 2000,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    console.error("Anthropic API error:", res.status, txt);
+    throw new Error(`Anthropic API error ${res.status}: ${txt}`);
+  }
+
+  const data = await res.json();
+  const text = data?.content?.[0]?.text || "[]";
+
   try {
-    const prompt = buildClaudePrompt(candidates);
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 2000,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-  const txt = await res.text();
-  console.error("Anthropic API error:", res.status, txt);
-  throw new Error(`Anthropic API error ${res.status}: ${txt}`);
-}
-
-    const data = await res.json();
-    const text = data?.content?.[0]?.text || "[]";
-
-    try {
-      return JSON.parse(text);
-    } catch (error) {
-      console.error("Claude no devolvió JSON válido");
-      console.error(text);
-      return [];
-    }
-  } catch (error) {
-    console.error("Error consultando Claude:", error);
-    return [];
+    return JSON.parse(text);
+  } catch {
+    console.error("Claude no devolvió JSON válido:", text);
+    throw new Error("Claude no devolvió JSON válido");
   }
 }
 
-} catch (error) {
-  console.error("Error generando predicciones:", error);
+export async function GET(req: Request) {
+  try {
+    const authHeader = req.headers.get("authorization");
+    const cronSecret = process.env.CRON_SECRET;
 
-  return Response.json(
-    {
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 }
-  );
- }
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-const bestLeagues = await detectBestLeaguesOfTheDay();
+    const bestLeagues = await detectBestLeaguesOfTheDay();
 
-const blacklist = [
-  "fifa",
-  "winner",
-  "outright",
-];
+    const blacklist = ["fifa", "winner", "outright"];
 
-const selectedLeagues = bestLeagues
-  .filter((l: any) =>
-    l.key.startsWith("soccer_") &&
-    !blacklist.some(b => l.key.includes(b))
-  )
-  .slice(0, 3);
+    const selectedLeagues = bestLeagues
+      .filter(
+        (l: any) =>
+          l.key.startsWith("soccer_") &&
+          !blacklist.some((b) => l.key.includes(b))
+      )
+      .slice(0, 3);
+
+    const allOdds = await Promise.all(
+      selectedLeagues.map((league: any) =>
+        getSoccerOddsBySportKey(league.key)
+      )
+    );
+
+    const flatOdds = allOdds.flat();
+    const candidates = buildCandidatesFromOdds(flatOdds).slice(0, 40);
 
     const predictions = await askClaudeForPredictions(candidates);
-if (!Array.isArray(predictions)) {
-  throw new Error("Predictions no es un array válido");
-}
+
+    if (!Array.isArray(predictions)) {
+      throw new Error("Predictions no es un array válido");
+    }
+
     await savePredictionsToBlob(predictions);
 
-   } catch (error) {
-  console.error("Error generando predicciones:", error);
+    return Response.json({
+      ok: true,
+      leagues_used: selectedLeagues.length,
+      candidates: candidates.length,
+      predictions_saved: predictions.length,
+    });
+  } catch (error) {
+    console.error("Error generando predicciones:", error);
 
-  return Response.json(
-    {
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 }
-  );
+    return Response.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
 }
