@@ -1,21 +1,28 @@
+export const dynamic = "force-dynamic";
+
 import { headers } from "next/headers";
 
 async function getMatches() {
-  const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = host?.includes("localhost") ? "http" : "https";
+  try {
+    const headersList = await headers();
+    const host = headersList.get("host");
+    const protocol = host?.includes("localhost") ? "http" : "https";
 
-  const res = await fetch(`${protocol}://${host}/api/matches/today`, {
-    cache: "no-store",
-  });
+    const res = await fetch(`${protocol}://${host}/api/matches/today`, {
+      cache: "no-store",
+    });
 
-  if (!res.ok) {
-    throw new Error("No se pudieron cargar los partidos");
+    if (!res.ok) {
+      console.error("Error cargando partidos:", res.status);
+      return { response: [] };
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error("Error general:", error);
+    return { response: [] };
   }
-
-  return res.json();
 }
-
 export default async function Home() {
   const data = await getMatches();
   const matches = data.response || [];
