@@ -1,8 +1,22 @@
-import predictions from "../data/predictions.json";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
-export default function PredictionsPage() {
+async function getPredictions() {
+  try {
+    const filePath = path.join(process.cwd(), "app", "data", "predictions.json");
+    const file = await readFile(filePath, "utf-8");
+    return JSON.parse(file);
+  } catch (error) {
+    console.error("Error leyendo predictions.json:", error);
+    return [];
+  }
+}
+
+export default async function PredictionsPage() {
+  const predictions = await getPredictions();
+
   return (
     <main
       style={{
@@ -76,7 +90,7 @@ export default function PredictionsPage() {
               </p>
             </div>
           ) : (
-            predictions.map((item, index) => (
+            predictions.map((item: any, index: number) => (
               <div
                 key={index}
                 style={{
