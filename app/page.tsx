@@ -19,7 +19,15 @@ async function getMatches() {
 export default async function Home() {
   const data = await getMatches();
   const matches = data.response || [];
-
+{matches.length === 0 ? (
+  <p>No hay partidos disponibles.</p>
+) : (
+  matches.slice(0, 20).map((match: any) => (
+    <div key={match.fixture.id}>
+      <p>{match.teams.home.name} vs {match.teams.away.name}</p>
+    </div>
+  ))
+)}
   return (
     <main style={{ padding: "40px", fontFamily: "Arial, sans-serif" }}>
       <h1>Partidos de hoy</h1>

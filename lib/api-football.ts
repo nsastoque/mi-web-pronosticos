@@ -2,7 +2,7 @@ export async function getMatchesToday() {
   const today = new Date().toISOString().split("T")[0];
 
   const res = await fetch(
-    `https://v3.football.api-sports.io/fixtures?date=${today}`,
+    `https://v3.football.api-sports.io/fixtures?next=20,
     {
       method: "GET",
       headers: {
