@@ -61,11 +61,10 @@ async function askClaudeForPredictions(candidates: any[]) {
     });
 
     if (!res.ok) {
-      console.error("Anthropic API error:", res.status);
-      const txt = await res.text();
-      console.error(txt);
-      return [];
-    }
+  const txt = await res.text();
+  console.error("Anthropic API error:", res.status, txt);
+  throw new Error(`Anthropic API error ${res.status}: ${txt}`);
+}
 
     const data = await res.json();
     const text = data?.content?.[0]?.text || "[]";
@@ -108,17 +107,19 @@ const selectedLeagues = bestLeagues
   .slice(0, 3);
 
     const predictions = await askClaudeForPredictions(candidates);
-
+if (!Array.isArray(predictions)) {
+  throw new Error("Predictions no es un array válido");
+}
     await savePredictionsToBlob(predictions);
 
-    return Response.json({
-      ok: true,
-      leagues_used: selectedLeagues.length,
-      candidates: candidates.length,
-      predictions_saved: Array.isArray(predictions) ? predictions.length : 0,
-    });
-  } catch (error) {
-    console.error("Error generando predicciones:", error);
-    return Response.json({ ok: false, error: "Internal error" }, { status: 500 });
-  }
+   } catch (error) {
+  console.error("Error generando predicciones:", error);
+
+  return Response.json(
+    {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    },
+    { status: 500 }
+  );
 }
