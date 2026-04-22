@@ -1,3 +1,4 @@
+```json
 [
   {
     "match": "Palmeiras vs Santos",
@@ -5,9 +6,7 @@
     "pick": "Palmeiras",
     "odd": 1.47,
     "confidence": "high",
-    "short_reason": "Palmeiras acumula 7 partidos invicto en el Brasileirao y recibe a un Santos en crisis de resultados. Ventaja de localia en Allianz Parque, diferencia de plantilla y momento animico claramente a favor del verdao.",
-    "last5_analysis": "Palmeiras suma invicto prolongado (W-D-W-W con Atletico-PR, Corinthians, Gremio y Bragantino en la franja reciente), con defensa solida. Santos encadena L-L-D-L, concede con facilidad y llega sin rachas consistentes como visitante.",
-    "news_factor": "Sin bajas confirmadas de peso en Palmeiras para esta fecha. Santos llega con rotaciones habituales y sin incorporaciones que cambien el pronostico. Riesgo bajo por factor extrafutbolistico."
+    "short_reason": "Palmeiras llega con racha prolongada sin derrotas en el Brasileirao y recibe a un Santos en mala forma con defensa vulnerable. Ventaja estructural y localia en Allianz Parque."
   },
   {
     "match": "Fluminense vs Chapecoense",
@@ -15,9 +14,7 @@
     "pick": "Fluminense",
     "odd": 1.28,
     "confidence": "high",
-    "short_reason": "Diferencia estructural marcada. Chapecoense viene de caer 1-4 ante Botafogo y pelea en zona baja. Fluminense juega en el Maracana con plantilla muy superior y necesidad de sumar en casa.",
-    "last5_analysis": "Fluminense mantiene rendimiento irregular pero positivo en casa (D-D-L-L-W, con 5 GF y 8 GC). Chapecoense presenta tendencia negativa clara, con derrotas contundentes y defensa permeable. La brecha es estructural, no coyuntural.",
-    "news_factor": "No se identifican bajas criticas confirmadas en Fluminense para esta fecha. Chapecoense no llega con noticias que modifiquen la diferencia de nivel. Escenario limpio para el favorito local."
+    "short_reason": "Diferencia de nivel marcada. Chapecoense pelea zona baja y viene de caer con contundencia. Fluminense local con plantilla muy superior; cuota baja pero coherente con el desbalance."
   },
   {
     "match": "Botafogo vs Remo",
@@ -25,9 +22,7 @@
     "pick": "Botafogo",
     "odd": 1.65,
     "confidence": "high",
-    "short_reason": "Botafogo en buen momento ofensivo y con localia en Nilton Santos. Remo, recien ascendido y con plantilla limitada, pelea zona de descenso y sufre como visitante ante rivales de mayor jerarquia.",
-    "last5_analysis": "Botafogo acumula 3 victorias en los ultimos 5, con 4-1 a Chapecoense como referencia reciente, promedio cercano a 1.8 GF por partido. Remo mezcla empates y derrotas, con pocas llegadas claras y defensa vulnerable fuera de casa.",
-    "news_factor": "Sin bajas mayores reportadas en Botafogo. Remo no presenta noticias que eleven su nivel competitivo para este duelo. Contexto deportivo estable."
+    "short_reason": "Botafogo en buen momento ofensivo y con clara ventaja de plantilla ante un Remo recien ascendido que sufre fuera de casa. Cuota con valor para favorito solido en Nilton Santos."
   },
   {
     "match": "Sao Paulo vs Mirassol",
@@ -35,8 +30,7 @@
     "pick": "Sao Paulo",
     "odd": 1.84,
     "confidence": "medium",
-    "short_reason": "Sao Paulo llega con buena ofensiva reciente y juega en el Morumbi, escenario donde el salto de nivel pesa. Mirassol ha sido competitivo pero el contraste estructural favorece al tricolor paulista.",
-    "last5_analysis": "Sao Paulo encadena victorias clave (2-1 Vasco, 4-1 Cruzeiro) con ataque en alza. Mirassol mezcla rendimientos (W-W-L, con caida 2-3 frente a Botafogo) y suele verse superado fuera de casa ante clubes grandes.",
-    "news_factor": "No se reportan bajas confirmadas de impacto en Sao Paulo para la fecha. Mirassol llega sin sorpresas en plantilla. Riesgo moderado solo por variabilidad propia del mercado de ganador."
+    "short_reason": "Sao Paulo con buena pegada reciente y localia en el Morumbi. Mirassol competitivo pero estructuralmente inferior; el salto de nivel suele pesar en este tipo de partidos."
   }
 ]
+```
