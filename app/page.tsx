@@ -1,483 +1,360 @@
-// app/page.tsx
-// Server Component — "Partidos de hoy"
-// Estética inspirada en Apple (light). La lógica de datos queda intacta.
-
-import type { CSSProperties } from "react";
 import { headers } from "next/headers";
+import predictions from "./data/predictions.json";
 
 export const dynamic = "force-dynamic";
 
-// ---------- Tipos ----------
-
-type Team = {
-  name: string;
-  logo?: string;
-};
-
-type Match = {
-  fixture: {
-    id: number;
-    date?: string;
-    status: {
-      long: string;
-      short?: string;
-      elapsed?: number | null;
-    };
-  };
-  league: {
-    name: string;
-    country?: string;
-    logo?: string;
-  };
-  teams: {
-    home: Team;
-    away: Team;
-  };
-  goals: {
-    home: number | null;
-    away: number | null;
-  };
-};
-
-// ---------- Data fetching (INTACTO) ----------
-
-async function getMatches(): Promise<Match[]> {
+async function getMatches() {
   try {
-    const h = await headers();
-    const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-    const forwardedProto = h.get("x-forwarded-proto");
-    const isLocal = host.includes("localhost") || host.startsWith("127.");
-    const protocol = forwardedProto || (isLocal ? "http" : "https");
+    const headersList = await headers();
+    const host = headersList.get("host");
+    const protocol = host?.includes("localhost") ? "http" : "https";
 
-    const url = `${protocol}://${host}/api/matches/today`;
+    const res = await fetch(`${protocol}://${host}/api/matches/today`, {
+      cache: "no-store",
+    });
 
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error("Error cargando partidos:", res.status);
+      return { response: [] };
+    }
 
-    const data = await res.json();
-    return data?.response || [];
-  } catch {
-    return [];
+    return res.json();
+  } catch (error) {
+    console.error("Error general:", error);
+    return { response: [] };
   }
 }
 
-// ---------- Página ----------
+function normalizeMatchName(name: string) {
+  return name.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function didPredictionWin(match: any, prediction: any) {
+  const status = match?.fixture?.status?.short;
+  const isFinished = status === "FT" || status === "AET" || status === "PEN";
+
+  if (!isFinished) return false;
+
+  const home = match?.teams?.home?.name;
+  const away = match?.teams?.away?.name;
+  const homeGoals = match?.goals?.home ?? 0;
+  const awayGoals = match?.goals?.away ?? 0;
+
+  const market = prediction?.market?.toLowerCase?.() || "";
+  const pick = prediction?.pick?.toLowerCase?.() || "";
+
+  if (market.includes("ganador")) {
+    if (pick === home?.toLowerCase() && homeGoals > awayGoals) return true;
+    if (pick === away?.toLowerCase() && awayGoals > homeGoals) return true;
+    return false;
+  }
+
+  if (market.includes("over 1.5")) {
+    return homeGoals + awayGoals > 1.5;
+  }
+
+  if (market.includes("over 2.5")) {
+    return homeGoals + awayGoals > 2.5;
+  }
+
+  if (market.includes("under 3.5")) {
+    return homeGoals + awayGoals < 3.5;
+  }
+
+  if (market.includes("btts") || pick.includes("ambos marcan")) {
+    return homeGoals > 0 && awayGoals > 0;
+  }
+
+  return false;
+}
 
 export default async function Home() {
-  const all = await getMatches();
-  const matches = all.slice(0, 12);
+  const data = await getMatches();
+  const matches = data.response || [];
 
-  const today = new Intl.DateTimeFormat("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date());
+  const predictedMatches = matches
+    .map((match: any) => {
+      const matchName = `${match.teams.home.name} vs ${match.teams.away.name}`;
+
+      const prediction = predictions.find(
+        (item: any) =>
+          normalizeMatchName(item.match) === normalizeMatchName(matchName)
+      );
+
+      if (!prediction) return null;
+
+      return {
+        match,
+        prediction,
+        won: didPredictionWin(match, prediction),
+      };
+    })
+    .filter(Boolean) as any[];
 
   return (
-    <main style={styles.page}>
-      <InlineStyles />
-
-      <div style={styles.container}>
-        <section style={styles.hero}>
-          <p style={styles.eyebrow}>HOY · {capitalize(today)}</p>
-          <h1 style={styles.title}>Partidos de hoy</h1>
-          <p style={styles.subtitle}>
-            Una lectura serena de la jornada. Todos los encuentros del día, en un solo lugar.
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f5f5f7",
+        color: "#1d1d1f",
+        padding: "40px 24px 80px",
+        fontFamily:
+          'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Arial, sans-serif',
+      }}
+    >
+      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "56px" }}>
+          <p
+            style={{
+              fontSize: "12px",
+              letterSpacing: "0.2em",
+              color: "#8c8c8c",
+              textTransform: "uppercase",
+              marginBottom: "16px",
+            }}
+          >
+            Hoy
           </p>
 
-          {matches.length > 0 && (
-            <div style={styles.heroMeta}>
-              <span style={styles.heroCount}>{matches.length}</span>
-              <span style={styles.heroCountLabel}>
-                {matches.length === 1 ? "partido en agenda" : "partidos en agenda"}
-              </span>
-            </div>
-          )}
-        </section>
+          <h1
+            style={{
+              fontSize: "64px",
+              lineHeight: 1.05,
+              margin: 0,
+              color: "#1d1d1f",
+              fontWeight: 600,
+            }}
+          >
+            Pronósticos de hoy
+          </h1>
 
-        <div style={styles.divider} />
+          <p
+            style={{
+              marginTop: "18px",
+              fontSize: "22px",
+              color: "#6e6e73",
+            }}
+          >
+            Una selección más cuidada. Solo las opciones más sólidas del día.
+          </p>
+        </div>
 
-        {matches.length === 0 ? (
-          <EmptyState />
+        {predictedMatches.length === 0 ? (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "28px",
+              padding: "48px",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.04)",
+              textAlign: "center",
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "34px",
+                color: "#1d1d1f",
+              }}
+            >
+              Sin pronósticos por ahora
+            </h2>
+            <p
+              style={{
+                marginTop: "12px",
+                color: "#6e6e73",
+                fontSize: "18px",
+              }}
+            >
+              Vuelve más tarde. El análisis del día aún no ha sido generado.
+            </p>
+          </div>
         ) : (
-          <section style={styles.grid}>
-            {matches.map((match) => (
-              <MatchCard key={match.fixture.id} match={match} />
-            ))}
-          </section>
-        )}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: "24px",
+            }}
+          >
+            {predictedMatches.map(({ match, prediction, won }) => {
+              const finished =
+                match?.fixture?.status?.short === "FT" ||
+                match?.fixture?.status?.short === "AET" ||
+                match?.fixture?.status?.short === "PEN";
 
-        <footer style={styles.footer}>
-          <span style={styles.footerText}>
-            Fórmula Once · El partido se lee antes de jugarse
-          </span>
-        </footer>
+              return (
+                <div
+                  key={match.fixture.id}
+                  style={{
+                    background: won ? "#eefbf2" : "#fff",
+                    borderRadius: "28px",
+                    padding: "28px",
+                    boxShadow: won
+                      ? "0 8px 30px rgba(34,197,94,0.10)"
+                      : "0 8px 30px rgba(0,0,0,0.04)",
+                    border: won
+                      ? "1px solid rgba(34,197,94,0.22)"
+                      : "1px solid rgba(0,0,0,0.04)",
+                    transition: "all 0.25s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "12px",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "13px",
+                        letterSpacing: "0.08em",
+                        color: "#8c8c8c",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {match.league.name}
+                    </p>
+
+                    {won && (
+                      <span
+                        style={{
+                          background: "#22c55e",
+                          color: "#fff",
+                          padding: "8px 12px",
+                          borderRadius: "999px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Acertado
+                      </span>
+                    )}
+                  </div>
+
+                  <h2
+                    style={{
+                      marginTop: 0,
+                      marginBottom: "10px",
+                      fontSize: "34px",
+                      lineHeight: 1.15,
+                      color: "#1d1d1f",
+                    }}
+                  >
+                    {match.teams.home.name} vs {match.teams.away.name}
+                  </h2>
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#6e6e73",
+                      fontSize: "16px",
+                    }}
+                  >
+                    Estado: {match.fixture.status.long}
+                  </p>
+
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      marginBottom: "20px",
+                      fontSize: "18px",
+                      color: "#333",
+                    }}
+                  >
+                    <strong>Marcador:</strong> {match.goals.home ?? 0} -{" "}
+                    {match.goals.away ?? 0}
+                  </p>
+
+                  <div
+                    style={{
+                      marginTop: "18px",
+                      padding: "18px",
+                      borderRadius: "20px",
+                      background: won ? "rgba(34,197,94,0.06)" : "#fafafa",
+                      border: won
+                        ? "1px solid rgba(34,197,94,0.16)"
+                        : "1px solid rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "12px",
+                        letterSpacing: "0.08em",
+                        color: "#8c8c8c",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Pronóstico
+                    </p>
+
+                    <p
+                      style={{
+                        marginTop: "10px",
+                        marginBottom: "8px",
+                        fontSize: "20px",
+                        color: "#1d1d1f",
+                      }}
+                    >
+                      <strong>{prediction.pick}</strong>
+                    </p>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "18px",
+                        flexWrap: "wrap",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <p style={{ margin: 0, color: "#6e6e73" }}>
+                        <strong>Mercado:</strong> {prediction.market}
+                      </p>
+                      <p style={{ margin: 0, color: "#6e6e73" }}>
+                        <strong>Cuota:</strong> {prediction.odd}
+                      </p>
+                      <p style={{ margin: 0, color: "#6e6e73" }}>
+                        <strong>Confianza:</strong> {prediction.confidence}
+                      </p>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#6e6e73",
+                        lineHeight: 1.6,
+                        fontSize: "15px",
+                      }}
+                    >
+                      {prediction.short_reason}
+                    </p>
+
+                    {finished && !won && (
+                      <p
+                        style={{
+                          marginTop: "12px",
+                          marginBottom: 0,
+                          fontSize: "14px",
+                          color: "#b45309",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Pronóstico no cumplido
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </main>
   );
 }
-
-function MatchCard({ match }: { match: Match }) {
-  const { fixture, league, teams, goals } = match;
-
-  const statusLong = fixture?.status?.long || "—";
-  const short = (fixture?.status?.short || "").toUpperCase();
-
-  const liveCodes = ["1H", "2H", "HT", "ET", "BT", "P", "LIVE"];
-  const finishedCodes = ["FT", "AET", "PEN"];
-
-  const isLive = liveCodes.includes(short);
-  const isFinished = finishedCodes.includes(short);
-  const isScheduled = !isLive && !isFinished;
-
-  const hasScore =
-    goals?.home !== null &&
-    goals?.away !== null &&
-    goals?.home !== undefined &&
-    goals?.away !== undefined;
-
-  const kickoff =
-    isScheduled && fixture?.date
-      ? new Intl.DateTimeFormat("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(new Date(fixture.date))
-      : null;
-
-  return (
-    <article className="match-card" style={styles.card}>
-      <header style={styles.cardHeader}>
-        <span style={styles.league}>
-          {league?.name}
-          {league?.country ? ` · ${league.country}` : ""}
-        </span>
-
-        {isLive && (
-          <span style={styles.liveBadge}>
-            <span className="live-dot" style={styles.liveDot} />
-            En vivo
-          </span>
-        )}
-
-        {!isLive && isFinished && <span style={styles.finishedBadge}>Final</span>}
-
-        {isScheduled && kickoff && <span style={styles.timeBadge}>{kickoff}</span>}
-      </header>
-
-      <div style={styles.cardRule} />
-
-      <div style={styles.teams}>
-        <div style={styles.teamRow}>
-          <span style={styles.teamDot} />
-          <span style={styles.teamName}>{teams?.home?.name}</span>
-          <span style={styles.score}>{hasScore ? goals.home : "—"}</span>
-        </div>
-        <div style={styles.teamRow}>
-          <span style={{ ...styles.teamDot, opacity: 0.45 }} />
-          <span style={styles.teamName}>{teams?.away?.name}</span>
-          <span style={styles.score}>{hasScore ? goals.away : "—"}</span>
-        </div>
-      </div>
-
-      <footer style={styles.cardFooter}>
-        <span style={styles.status}>{statusLong}</span>
-      </footer>
-    </article>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div style={styles.empty}>
-      <div style={styles.emptyIcon} aria-hidden>
-        <div style={styles.emptyIconInner} />
-      </div>
-      <p style={styles.emptyTitle}>Sin partidos por ahora</p>
-      <p style={styles.emptyText}>
-        Vuelve en unos minutos. La jornada aún no comienza.
-      </p>
-    </div>
-  );
-}
-
-function capitalize(s: string) {
-  if (!s) return s;
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function InlineStyles() {
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: `
-          html, body {
-            margin: 0;
-            padding: 0;
-            background: #fbfbfd;
-            color: #1d1d1f;
-          }
-          *, *::before, *::after { box-sizing: border-box; }
-
-          .match-card { will-change: transform; }
-          .match-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(0, 0, 0, 0.08) !important;
-            box-shadow:
-              0 1px 2px rgba(0, 0, 0, 0.04),
-              0 22px 48px rgba(0, 0, 0, 0.08) !important;
-          }
-
-          @keyframes livePulse {
-            0%, 100% { opacity: 1;   transform: scale(1); }
-            50%      { opacity: 0.5; transform: scale(0.85); }
-          }
-          .live-dot { animation: livePulse 1.6s ease-in-out infinite; }
-        `,
-      }}
-    />
-  );
-}
-
-const styles: Record<string, CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    background:
-      "radial-gradient(1200px 500px at 50% -5%, rgba(0, 0, 0, 0.035), transparent 60%), #fbfbfd",
-    color: "#1d1d1f",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Inter, "Segoe UI", Arial, sans-serif',
-    WebkitFontSmoothing: "antialiased",
-    MozOsxFontSmoothing: "grayscale",
-  },
-  container: { maxWidth: "1120px", margin: "0 auto", padding: "104px 24px 120px" },
-
-  hero: { textAlign: "center", marginBottom: "48px" },
-  eyebrow: {
-    fontSize: "12px",
-    fontWeight: 600,
-    letterSpacing: "0.22em",
-    color: "#86868b",
-    textTransform: "uppercase",
-    margin: "0 0 20px",
-  },
-  title: {
-    fontSize: "clamp(44px, 7vw, 76px)",
-    fontWeight: 600,
-    letterSpacing: "-0.035em",
-    lineHeight: 1.04,
-    margin: 0,
-    color: "#1d1d1f",
-    background: "linear-gradient(180deg, #1d1d1f 0%, #3a3a3c 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-  },
-  subtitle: {
-    marginTop: "22px",
-    marginLeft: "auto",
-    marginRight: "auto",
-    maxWidth: "620px",
-    fontSize: "clamp(17px, 1.6vw, 21px)",
-    fontWeight: 400,
-    lineHeight: 1.5,
-    color: "#6e6e73",
-  },
-  heroMeta: {
-    marginTop: "28px",
-    display: "inline-flex",
-    alignItems: "baseline",
-    justifyContent: "center",
-    gap: "10px",
-  },
-  heroCount: {
-    fontSize: "17px",
-    fontWeight: 600,
-    color: "#1d1d1f",
-    letterSpacing: "-0.01em",
-    fontVariantNumeric: "tabular-nums",
-  },
-  heroCountLabel: { fontSize: "14px", color: "#86868b", fontWeight: 400 },
-
-  divider: {
-    height: "1px",
-    background:
-      "linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 50%, transparent 100%)",
-    margin: "24px auto 40px",
-    maxWidth: "520px",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-    gap: "18px",
-  },
-
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: "22px",
-    padding: "24px 26px 22px",
-    border: "1px solid rgba(0, 0, 0, 0.05)",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.04)",
-    transition:
-      "transform 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, box-shadow 260ms ease",
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
-    minHeight: "200px",
-  },
-  cardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-  },
-  league: {
-    fontSize: "12px",
-    fontWeight: 600,
-    letterSpacing: "0.1em",
-    color: "#86868b",
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    flex: 1,
-    minWidth: 0,
-  },
-  cardRule: { height: "1px", backgroundColor: "rgba(0, 0, 0, 0.06)" },
-
-  liveBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "11px",
-    fontWeight: 600,
-    color: "#d70015",
-    backgroundColor: "rgba(255, 59, 48, 0.09)",
-    border: "1px solid rgba(255, 59, 48, 0.18)",
-    padding: "4px 10px",
-    borderRadius: "999px",
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
-  },
-  liveDot: {
-    width: "6px",
-    height: "6px",
-    borderRadius: "50%",
-    backgroundColor: "#ff3b30",
-    display: "inline-block",
-    boxShadow: "0 0 8px rgba(255, 59, 48, 0.55)",
-  },
-  finishedBadge: {
-    fontSize: "11px",
-    fontWeight: 500,
-    color: "#6e6e73",
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
-    border: "1px solid rgba(0, 0, 0, 0.06)",
-    padding: "4px 10px",
-    borderRadius: "999px",
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
-  },
-  timeBadge: {
-    fontSize: "12px",
-    fontWeight: 600,
-    color: "#1d1d1f",
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
-    padding: "4px 10px",
-    borderRadius: "999px",
-    letterSpacing: "0.01em",
-    fontVariantNumeric: "tabular-nums",
-    whiteSpace: "nowrap",
-  },
-
-  teams: { display: "flex", flexDirection: "column", gap: "12px" },
-  teamRow: { display: "flex", alignItems: "center", gap: "12px" },
-  teamDot: {
-    width: "7px",
-    height: "7px",
-    borderRadius: "50%",
-    backgroundColor: "#1d1d1f",
-    flexShrink: 0,
-  },
-  teamName: {
-    fontSize: "19px",
-    fontWeight: 500,
-    color: "#1d1d1f",
-    letterSpacing: "-0.012em",
-    lineHeight: 1.25,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    flex: 1,
-    minWidth: 0,
-  },
-  score: {
-    fontSize: "26px",
-    fontWeight: 600,
-    color: "#1d1d1f",
-    letterSpacing: "-0.02em",
-    fontVariantNumeric: "tabular-nums",
-    minWidth: "28px",
-    textAlign: "right",
-  },
-  cardFooter: {
-    borderTop: "1px solid rgba(0, 0, 0, 0.05)",
-    paddingTop: "14px",
-    marginTop: "auto",
-  },
-  status: {
-    fontSize: "12px",
-    color: "#86868b",
-    fontWeight: 400,
-    letterSpacing: "0.01em",
-  },
-
-  empty: {
-    textAlign: "center",
-    padding: "96px 24px",
-    backgroundColor: "#ffffff",
-    borderRadius: "22px",
-    border: "1px solid rgba(0, 0, 0, 0.05)",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.035)",
-  },
-  emptyIcon: {
-    width: "56px",
-    height: "56px",
-    borderRadius: "50%",
-    margin: "0 auto 24px",
-    backgroundColor: "rgba(0, 0, 0, 0.035)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyIconInner: {
-    width: "18px",
-    height: "18px",
-    borderRadius: "50%",
-    border: "2px solid #86868b",
-    opacity: 0.45,
-  },
-  emptyTitle: {
-    fontSize: "26px",
-    fontWeight: 600,
-    color: "#1d1d1f",
-    margin: 0,
-    letterSpacing: "-0.02em",
-  },
-  emptyText: {
-    marginTop: "12px",
-    fontSize: "16px",
-    color: "#86868b",
-    margin: "12px 0 0",
-  },
-
-  footer: {
-    marginTop: "80px",
-    paddingTop: "32px",
-    borderTop: "1px solid rgba(0, 0, 0, 0.06)",
-    textAlign: "center",
-  },
-  footerText: { fontSize: "12px", color: "#86868b", letterSpacing: "0.04em" },
-};
